@@ -10,12 +10,13 @@ Descriptions:
                 sudo chmod o+rw /dev/ttyS#
                 sudo stty -F /dev/ttyS# 38400 raw -echo
                 sudo cat /dev/ttyS#
+         If permission denied, consider to change port mode to 777
 --------------------------------------------------------------------------------------
 """
-
 import serial
 import sys
 
+# Configure the serial port and open/activate it
 ser = serial.Serial(
     port      = '/dev/ttyS8',
     baudrate  = 38400,
@@ -29,16 +30,19 @@ ser = serial.Serial(
     writeTimeout = None
 )
 
+# This is optional .
+# Without 'try' will give error - try to open the opened port
 try:
     ser.open()
 except Exception as e:
     print("Exception: Opening serial port: " + str(e))
 
-
-while True:
+# This loop continously read serial data until Keyboard interrupt
+if ser.isOpen():
     try:
-        data = ser.readline().decode()
-        print(data)
+        while True:
+            data = ser.readline().decode()
+            print(data)
 
     except Exception as e:
         print ("Error communicating..: " + str(e))
