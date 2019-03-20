@@ -13,3 +13,38 @@ Descriptions:
 --------------------------------------------------------------------------------------
 """
 
+import serial
+import sys
+
+ser = serial.Serial(
+    port      = '/dev/ttyS8',
+    baudrate  = 38400,
+    parity    = serial.PARITY_NONE,
+    stopbits  = serial.STOPBITS_ONE,
+    bytesize  = serial.EIGHTBITS,
+    timeout   = 1,
+    xonxoff   = False,
+    dsrdtr    = False,
+    rtscts    = False,
+    writeTimeout = None
+)
+
+try:
+    ser.open()
+except Exception as e:
+    print("Exception: Opening serial port: " + str(e))
+
+
+while True:
+    try:
+        data = ser.readline().decode()
+        print(data)
+
+    except Exception as e:
+        print ("Error communicating..: " + str(e))
+    except KeyboardInterrupt:
+        print("KeyboardInterrupted")
+        sys.exit(0)
+
+ser.close()
+
