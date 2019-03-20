@@ -51,9 +51,10 @@ int set_interface_attribs (int fd, int speed)
 
 int main(void)
 {
-    char *portname = "/dev/ttyS5";
+    char *portname = "/dev/ttyS8";
     int fd, rdlen;
     unsigned char buf[255];
+    struct termios old_sensor; //to get previous settings
     
     /*Open port*/
     fd = open(portname, O_RDWR | O_NOCTTY | O_NDELAY);
@@ -63,6 +64,7 @@ int main(void)
 	fcntl(fd,F_SETFL,0);
     
     /*get and set the options*/
+    tcgetattr(fd,&old_sensor); //save old port settings
     set_interface_attribs(fd,B38400);
 
     /*simple noncanonical input*/
@@ -78,6 +80,10 @@ int main(void)
 	sleep(0.5);
 	
       }while(1);
-      close(fd);
+/*Restore old port settings*/
+tcsetattr(fd,TCSANOW,&old_sensor);
+
+/*Close port*/
+close(fd);
 return 0;
 }	
