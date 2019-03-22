@@ -13,16 +13,19 @@ bytesToSend = str.encode(msgFromClient)
 UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
 try:
-    # Send to server using created UDP socket
-    UDPClientSocket.sendto(bytesToSend, serverAddressPort)
+    while True:
+        # Send to server using created UDP socket
+        UDPClientSocket.sendto(bytesToSend, serverAddressPort)
 
-    # Get data from server
-    msgFromServer = UDPClientSocket.recvfrom(bufferSize)
-    msg = "Message from Server {}".format(msgFromServer[0])
-    print(msg)
+        # Get data from server
+        msgFromServer = UDPClientSocket.recvfrom(bufferSize)
+        msg = "Message from Server {}".format(msgFromServer[0])
+        print(msg)
 except KeyboardInterrupt:
     print("Client Keyboard Interrupted")
     sys.exit(0)
 
 
 UDPClientSocket.close()
+
+

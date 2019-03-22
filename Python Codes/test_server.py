@@ -2,6 +2,26 @@
 
 import socket
 import sys
+import random
+
+
+def csum(data):
+    checksum = 0
+    for i in  range(len(data)):
+        checksum = checksum ^ ord(data[i])
+    checksum = hex(checksum)[2:]
+    print("Apprate with checksum = "+ (data+checksum))
+    #print("Apprate with checksum = %s" % (data + checksum))
+    return(data+checksum)
+
+def csum2(data):
+    checksum = 0
+    for i in data:
+        checksum = checksum ^ ord(i)
+    checksum = hex(checksum)[2:]
+    print("Apprate with checksum = "+ (data+checksum))
+    #print("Apprate with checksum = %s" % (data + checksum))
+    return(data+checksum)
 
 localIP   = "127.0.0.1"
 localPort =  4445
@@ -32,24 +52,29 @@ while (True):
         print(clientMsg)
         print(clientIP)
 
-        for strData in clientMsg.split(','):
-            print("string data: " + strData)
+        #for strData in clientMsg.split(','):
+        #    print("string data: " + strData)
 
         strData = message.decode().split(',')
-        print("String data len: " + str(len(strData)))
-        print("String data type: " + str(type(strData)))
-        print(strData)
-        print(format(message))
+        print("DataLen    : " + str(len(strData)))
+        print("DataType   : " + str(type(strData)))
+        print("Encoded    : " + str(strData)) #list has to be converted to str
+        print("Formatted  : " + format(message))
 
-        print("Data1: " + strData[0])
-        print("Data2: " + strData[1])
-        print("Data3: " + strData[2])
-        print("Data4: " + strData[3])
-        print("Data5: " + strData[4])
-        print("Data6: " + strData[5])
-        print("Data7: " + strData[6])
+        print ("------Data sent to client------")
+        #App_Rate = 'SD124'
+        App_Rate = input("Input rate : ") #raw_input accept string
+        App_Rate = 'SD' + str(App_Rate)
 
-        UDPServerSocket.sendto(b'Data from server', address)
+        Green_Index = round(random.random(), 2)
+        Plant_Vol = round(random.uniform(10, 100), 2)
+        Sys_Volt = round(random.uniform(10, 12), 2)
+        GPS_x = strData[3]
+        GPS_y = strData[4]
+        MsgToClient = "{},{},{},{},{},{},{}".format('#', csum(App_Rate), Green_Index,
+                                                  Plant_Vol, Sys_Volt, GPS_x, GPS_y)
+        UDPServerSocket.sendto(str.encode(MsgToClient), address)
+        # UDPServerSocket.sendto(b'Data from server', address)
 
     except KeyboardInterrupt:
         print("KeyboardInterrupted")
@@ -64,3 +89,4 @@ Strings are always Unicode:-
     - format(message) decode into binary integer
     - message.decode() decode into binary character (normal string)
 """
+
