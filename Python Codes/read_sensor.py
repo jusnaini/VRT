@@ -32,23 +32,29 @@ ser = serial.Serial(
 
 # This is optional .
 # Without 'try' will give error - try to open the opened port
+'''
 try:
     ser.open()
 except Exception as e:
     print("Exception: Opening serial port: " + str(e))
-
-# This loop continously read serial data until Keyboard interrupt
+'''
+# This loop continuously read serial data until Keyboard interrupt
+get_filename = input('Filename : ')
+f = open(get_filename+'.csv',"w+")
+header = "RedEdge,NIR,Red,NDRE,NDVI"
 if ser.isOpen():
     try:
+        f.write(header+'\n')
         while True:
             data = ser.readline().decode()
             print(data)
+            f.write(data+'\n')
 
     except Exception as e:
         print ("Error communicating..: " + str(e))
     except KeyboardInterrupt:
         print("KeyboardInterrupted")
         sys.exit(0)
-
+    f.close()
 ser.close()
 
