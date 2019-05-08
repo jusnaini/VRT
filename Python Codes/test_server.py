@@ -9,7 +9,8 @@ def csum(data):
     checksum = 0
     for i in  range(len(data)):
         checksum = checksum ^ ord(data[i])
-    checksum = hex(checksum)[2:]
+    #checksum = hex(checksum)[2:]
+    checksum = chr(checksum)
     print("Apprate with checksum = "+ (data+checksum))
     #print("Apprate with checksum = %s" % (data + checksum))
     return(data+checksum)
