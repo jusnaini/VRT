@@ -69,8 +69,8 @@ while (True):
         Green_Index = round(random.random(), 2)
         Plant_Vol = round(random.uniform(10, 100), 2)
         Sys_Volt = round(random.uniform(10, 12), 2)
-        GPS_x = strData[3]
-        GPS_y = strData[4]
+        GPS_x = strData[2]
+        GPS_y = strData[3]
         MsgToClient = "{},{},{},{},{},{},{}".format('#', csum(App_Rate), Green_Index,
                                                   Plant_Vol, Sys_Volt, GPS_x, GPS_y)
         UDPServerSocket.sendto(str.encode(MsgToClient), address)

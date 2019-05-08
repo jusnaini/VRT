@@ -61,7 +61,7 @@ while True:
         print("PORT    : %d" % (address[1]))
         print("MESSAGE : %s" % (message.decode()))
 
-        strData = message.decode().split(',')
+     52
 
         print("start  : " + strData[0])
         print("pause  : " + strData[1])
@@ -99,6 +99,8 @@ while True:
                 Sys_Volt    = float(data[3])
                 GPS_x       = float(data[4])
                 GPS_y       = float(strData[4])
+        `1
+        `+*+
 
         # send: "#,data1,data2,data3,data4,data5,data6"
         clientMsg = "{},{},{},{},{},{},{}".format('#', App_Rate, Green_Index, Plant_Vol, Sys_Volt, GPS_x, GPS_y)
