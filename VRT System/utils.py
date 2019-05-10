@@ -9,6 +9,17 @@ def csum(data):
     print("Apprate with checksum = "+ (data+chr(checksum)))
     return(data+chr(checksum))
 
+def set_bogballe(App_Rate):
+    Nrate = 'SD' + '%03d'%App_Rate
+    checksum = 0
+    for i in Nrate:
+        checksum = checksum ^ ord(i)
+    #checksum = hex(checksum)[2:]
+    N_apply = Nrate + chr(checksum)
+    N_apply = "{%s}"%(N_apply)
+    print("N to apply: {}".format(N_apply))
+    return(N_apply)
+
 
 ## function to compute and return all features
 def features(data):
@@ -26,7 +37,6 @@ def features(data):
     idx_list1 = [re,nir,red,ndre,ndvi,rervi,rerdvi,redvi,resavi,mresavi,ci]
     #print(idx_list)
     return(idx_list1)
-
 
 ## function to compute features for svm
 def get_features(data):
