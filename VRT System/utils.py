@@ -59,13 +59,17 @@ def predModel(data,svm_model):
     if(svm_model.predict([data]))== 0:
         print('N_status : LOW')
         N_recommend = 200
+        status = 'low'
     elif(svm_model.predict([data]))==1:
         print('N_status : MEDIUM')
         N_recommend = 120
+        status = 'medium'
     elif(svm_model.predict([data]))== 2:
         print('N_status : HIGH')
-        N_recommend = 200
+        N_recommend = 0
+        status = 'high'
     else:
         print('Unknown')
         N_recommend=0
-    return(N_recommend)
+        status = 'unknown'
+    return [N_recommend, status]
