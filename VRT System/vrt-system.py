@@ -71,6 +71,12 @@ UDPServerSocket = socket.socket(family=socket.AF_INET,type=socket.SOCK_DGRAM)
 UDPServerSocket.bind((UDP_IP,UDP_PORT))
 print("Waiting for request..\n")
 
+## Open file to log data
+get_filename = input('Filename : ')
+f = open(get_filename+'.csv',"w+")
+header = "Datetime,RedEdge,NIR,NDRE,RERVI,RERDVI,REDVI,RESAVI,MRESAVI,CI"
+f.write(header+'\n')
+
 while True:
     try:
 
@@ -132,14 +138,16 @@ while True:
                 a, b, c, d, e, f, g, h, i = (sum(l) / len(l) for l in crop_list)
                 data_list = [a, b, c, d, e, f, g, h, i]
                 print("total_data = {}".format(total_data))
-                App_Rate = predModel(np.array(data_list), svm_model)
+                App_Rate,status = predModel(np.array(data_list), svm_model)
                 Green_Index = 0.5
                 Plant_Vol   = 777.7
                 Sys_Volt    = 10
                 GPS_x       = float(strData[4])
                 GPS_y       = float(strData[4])
 
-
+                ## log data into file
+                log_data = ','.join(map(str,data_list))
+                f.write(datetime.datetime.now().isoformat() + '\t' + log_data + status+'\n')
 
         # send: "#,data1,data2,data3,data4,data5,data6"
         clientMsg = "{},{},{},{},{},{},{}".format('#', App_Rate, Green_Index, Plant_Vol, Sys_Volt, GPS_x, GPS_y)
@@ -155,6 +163,8 @@ while True:
         print("KeyboardInterrupted")
         sys.exit(0)
 
+    ## close file as system exit
+    f.close()
 
 ser_sensor.close()
 ser_calibrator.close()
