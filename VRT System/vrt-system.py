@@ -126,37 +126,43 @@ while True:
                 rate_count = Counter([])
                 crop_list = [[] for i in range(9)]
 
-                while (loop in range(5)): # loop 5 times before determine predict
+                ## loop 5 times to select most frequent prediction
+                while (loop in range(5)):
                     delay = 1
                     time_end = time.time() + delay
                     win_sz = 0
 
+                    ## get data for every 1 s
                     while time.time() < time_end:
-                        data = ser_sensor.readline().decode()
-                        msg = get_features(data)
+                        data = ser_sensor.readline().decode() # Read Crop Circle
+                        msg = get_features(data)              # Compute other features
                         print(data)
 
-                        for i, m in enumerate(msg):
+                        for i, m in enumerate(msg):           # Append new data for each vi
                             crop_list[i].append(msg[i])
-                        win_sz +=1
+                        win_sz +=1                            # Count data in 1s for moving average
 
                     crop_list_size = len(crop_list[0])
                     print("window_size = {}".format(str(win_sz)))
                     print("crop_list_size = {}".format(str(crop_list_size)))
 
+                    # Calculate moving average for every 1s
                     a,b,c,d,e,f,g,h,i = map(lambda x: x[-1],[np.convolve(x, np.ones((win_sz,)) / win_sz, mode='valid') for x in crop_list])
                     data_list = [a, b, c, d, e, f, g, h, i]
+                    # Predict data for every 1s
                     N_rate, status = predModel(np.array(data_list),svm_model)
+                    # Update prediction counter
                     rate_count.update([N_rate])
                     status_count.update([status])
-
+                    # convert list into string
                     data_logged = ','.join(map(str,data_list))
+                    # write data of 1s
                     f.write(datetime.datetime.now().isoformat() + '\t' + data_logged + '\t'+status+'\t'+str(N_rate)+'\n')
 
                     loop +=1
 
-                App_Rate = rate_count.most_common(1)[0][0]
-                N_status = status_count.most_common(1)[0][0]
+                App_Rate = rate_count.most_common(1)[0][0]      # select most frequent rate
+                N_status = status_count.most_common(1)[0][0]    # select most frequent status
                 Green_Index = 0.5
                 Plant_Vol   = 777.7
                 Sys_Volt    = 10
