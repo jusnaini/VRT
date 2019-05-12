@@ -28,6 +28,8 @@ import pandas as pd
 import numpy as np
 import pickle
 from collections import Counter
+
+from utils import CropCircle, BogballeCalibrator
 from utils import features,get_features,predModel,set_bogballe
 
 # UDP socket configurations
@@ -36,31 +38,9 @@ UDP_PORT   = 4445
 bufferSize = 1024
 
 # Serial port configurations
-ser_sensor = serial.Serial(
-    port      = '/dev/ttyS8',
-    baudrate  = 38400,
-    parity    = serial.PARITY_NONE,
-    stopbits  = serial.STOPBITS_ONE,
-    bytesize  = serial.EIGHTBITS,
-    timeout   = 1,
-    xonxoff   = False,
-    dsrdtr    = False,
-    rtscts    = False,
-    writeTimeout = None
-)
+ser_sensor = CropCircle()
+ser_calibrator = BogballeCalibrator()
 
-ser_calibrator = serial.Serial(
-    port      = '/dev/ttyS7',
-    baudrate  = 9600,
-    parity    = serial.PARITY_NONE,
-    stopbits  = serial.STOPBITS_ONE,
-    bytesize  = serial.EIGHTBITS,
-    timeout   = 1,
-    xonxoff   = False,
-    dsrdtr    = False,
-    rtscts    = False,
-    writeTimeout = None
-)
 # load svm model
 mpath = '../svm_tuple.pkl'
 svm_model, svm_Xtrain, svm_Ytrain, svm_score = pickle.load(open(mpath, 'rb'))
