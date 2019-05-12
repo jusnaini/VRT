@@ -23,10 +23,11 @@ import socket
 import serial
 import sys
 import random
-import datetime
+import datetime,time
 import pandas as pd
 import numpy as np
 import pickle
+from collections import Counter
 from utils import features,get_features,predModel,set_bogballe
 
 # UDP socket configurations
@@ -73,9 +74,11 @@ print("Waiting for request..\n")
 
 ## Open file to log data
 get_filename = input('Filename : ')
-f = open(get_filename+'.csv',"w+")
-header = "Datetime,RedEdge,NIR,NDRE,RERVI,RERDVI,REDVI,RESAVI,MRESAVI,CI"
+f = open(get_filename+'_movingaverage.csv',"w+")
+f2 = open(get_filename+'_log.csv',"w+")
+header = "Datetime,RedEdge,NIR,NDRE,RERVI,RERDVI,REDVI,RESAVI,MRESAVI,CI,N_pred,N_rate"
 f.write(header+'\n')
+f2.write(header+'\n')
 
 while True:
     try:
@@ -85,13 +88,11 @@ while True:
         message = bytesAddressPair[0]
         address = bytesAddressPair[1]
         '''
-
         print("SOURCE  : %s" % (address[0]))
         print("PORT    : %d" % (address[1]))
         print("MESSAGE : %s" % (message.decode()))
         '''
         strData = message.decode().split(',')
-
         '''
         print("start  : " + strData[0])
         print("pause  : " + strData[1])
@@ -120,34 +121,50 @@ while True:
                 GPS_x       = strData[3]
                 GPS_y       = strData[4]
             else:
-                duration = 1
-                time_start = datetime.datetime.now()
-                time_end = time_start + datetime.timedelta(seconds=duration)
+                loop = 0
+                status_count = Counter([])
+                rate_count = Counter([])
                 crop_list = [[] for i in range(9)]
-                total_data = 0
 
-                while datetime.datetime.now() < time_end:
-                    data = ser_sensor.readline().decode()
-                    msg = get_features(data)
-                    print(data)
+                while (loop in range(5)): # loop 5 times before determine predict
+                    delay = 1
+                    time_end = time.time() + delay
+                    win_sz = 0
 
-                    for i, m in enumerate(msg):
-                        crop_list[i].append(msg[i])
-                    total_data += total_data+1
+                    while time.time() < time_end:
+                        data = ser_sensor.readline().decode()
+                        msg = get_features(data)
+                        print(data)
 
-                a, b, c, d, e, f, g, h, i = (sum(l) / len(l) for l in crop_list)
-                data_list = [a, b, c, d, e, f, g, h, i]
-                print("total_data = {}".format(total_data))
-                App_Rate,status = predModel(np.array(data_list), svm_model)
+                        for i, m in enumerate(msg):
+                            crop_list[i].append(msg[i])
+                        win_sz +=1
+
+                    crop_list_size = len(crop_list[0])
+                    print("window_size = {}".format(str(win_sz)))
+                    print("crop_list_size = {}".format(str(crop_list_size)))
+
+                    a,b,c,d,e,f,g,h,i = map(lambda x: x[-1],[np.convolve(x, np.ones((win_sz,)) / win_sz, mode='valid') for x in crop_list])
+                    data_list = [a, b, c, d, e, f, g, h, i]
+                    N_rate, status = predModel(np.array(data_list),svm_model)
+                    rate_count.update([N_rate])
+                    status_count.update([status])
+
+                    data_logged = ','.join(map(str,data_list))
+                    f.write(datetime.datetime.now().isoformat() + '\t' + data_logged + '\t'+status+'\t'+str(N_rate)+'\n')
+
+                    loop +=1
+
+                App_Rate = rate_count.most_common(1)[0][0]
+                N_status = status_count.most_common(1)[0][0]
                 Green_Index = 0.5
                 Plant_Vol   = 777.7
                 Sys_Volt    = 10
                 GPS_x       = float(strData[4])
                 GPS_y       = float(strData[4])
 
-                ## log data into file
-                log_data = ','.join(map(str,data_list))
-                f.write(datetime.datetime.now().isoformat() + '\t' + log_data + status+'\n')
+                ## log decision data into file
+                f2.write(datetime.datetime.now().isoformat() + '\t' + data_logged + '\t' + N_status + '\t' + str(App_Rate) + '\n')
 
         # send: "#,data1,data2,data3,data4,data5,data6"
         clientMsg = "{},{},{},{},{},{},{}".format('#', App_Rate, Green_Index, Plant_Vol, Sys_Volt, GPS_x, GPS_y)
@@ -165,6 +182,7 @@ while True:
 
     ## close file as system exit
     f.close()
+    f2.close()
 
 ser_sensor.close()
 ser_calibrator.close()
