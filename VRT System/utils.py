@@ -1,5 +1,36 @@
 import numpy as np
 import pandas as pd
+import serial
+
+def CropCircle():
+    ser_sensor = serial.Serial(
+        port      = '/dev/ttyS8',
+        baudrate  = 38400,
+        parity    = serial.PARITY_NONE,
+        stopbits  = serial.STOPBITS_ONE,
+        bytesize  = serial.EIGHTBITS,
+        timeout   = 1,
+        xonxoff   = False,
+        dsrdtr    = False,
+        rtscts    = False,
+        writeTimeout = None )
+    return ser_sensor
+
+def BogballeCalibrator():
+    ser_calibrator = serial.Serial(
+        port      = '/dev/ttyS7',
+        baudrate  = 9600,
+        parity    = serial.PARITY_NONE,
+        stopbits  = serial.STOPBITS_ONE,
+        bytesize  = serial.EIGHTBITS,
+        timeout   = 1,
+        xonxoff   = False,
+        dsrdtr    = False,
+        rtscts    = False,
+        writeTimeout = None )
+    return ser_calibrator
+
+
 
 ## function to calculate checksum
 def csum(data):
