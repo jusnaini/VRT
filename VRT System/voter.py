@@ -112,7 +112,8 @@ win = len(crop_list[0])
 
 loop = 0
 crop_list = [[] for i in range(3)]
-
+get_filename = input('Filename : ')
+f = open(get_filename+'_movingaverage.csv',"w+")
 while (loop in range(5)):  # loop 5 times before determine predict
     delay = 1
     time_end = time.time() + delay
@@ -138,6 +139,9 @@ while (loop in range(5)):  # loop 5 times before determine predict
     a, b, c, = map(lambda x: x[-1], [np.convolve(x, np.ones((3,)) / (3), mode='valid') for x in crop_list])
     data_list = [a, b, c]
     print("a = {},b = {}, c = {}".format(a, b, c))
+    data_logged = ','.join(map(str, data_list))
+    f.write(str(data_logged) + '\n')
+    print(type(data_logged))
 
     loop += 1
-
+f.close()
