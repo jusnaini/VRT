@@ -32,6 +32,11 @@ from collections import Counter
 from utils import CropCircle, BogballeCalibrator
 from utils import features,get_features,predModel,set_bogballe
 
+print("===============================")
+print("AN ON-THE-GO VRT CONTROL SYSTEM")
+print("===============================")
+
+
 # UDP socket configurations
 UDP_IP     = "10.42.0.1"
 UDP_PORT   = 4445
@@ -48,17 +53,18 @@ svm_model, svm_Xtrain, svm_Ytrain, svm_score = pickle.load(open(mpath, 'rb'))
 # Create a datagram socket
 UDPServerSocket = socket.socket(family=socket.AF_INET,type=socket.SOCK_DGRAM)
 
-# Bind address and ip
-UDPServerSocket.bind((UDP_IP,UDP_PORT))
-print("Waiting for request..\n")
-
 ## Open file to log data
 get_filename = input('Filename : ')
-f = open(get_filename+'_movingaverage.csv',"w+")
+f = open(get_filename+'.csv',"w+")
 f2 = open(get_filename+'_log.csv',"w+")
 header = "Datetime,RedEdge,NIR,NDRE,RERVI,RERDVI,REDVI,RESAVI,MRESAVI,CI,N_pred,N_rate"
 f.write(header+'\n')
 f2.write(header+'\n')
+
+
+# Bind address and ip
+UDPServerSocket.bind((UDP_IP,UDP_PORT))
+print("Waiting for request..\n")
 
 while True:
     try:
@@ -94,12 +100,16 @@ while True:
             GPS_y       = 000
         else:
             if manual == 1:
+                print("-------------")
+                print("MODE : MANUAL")
+                print("-------------")
                 App_Rate    = int(strData[6])
                 Green_Index = round(random.random(), 2)
                 Plant_Vol   = round(random.uniform(10, 100), 2)
                 Sys_Volt    = round(random.uniform(10, 12), 2)
                 GPS_x       = strData[3]
                 GPS_y       = strData[4]
+
             else:
                 loop = 0
                 status_count = Counter([])
@@ -116,30 +126,36 @@ while True:
                     while time.time() < time_end:
                         data = ser_sensor.readline().decode() # Read Crop Circle
                         msg = get_features(data)              # Compute other features
-                        print(data)
+                        #print("{} : {}".format(datetime.datetime.now().isoformat(),data))
 
                         for i, m in enumerate(msg):           # Append new data for each vi
                             crop_list[i].append(msg[i])
                         win_sz +=1                            # Count data in 1s for moving average
 
+                    # Print info
+                    print("-----------")
+                    print("MODE : AUTO")
+                    print("-----------")
                     crop_list_size = len(crop_list[0])
                     print("window_size = {}".format(str(win_sz)))
                     print("crop_list_size = {}".format(str(crop_list_size)))
 
                     # Calculate moving average for every 1s
-                    a,b,c,d,e,f,g,h,i = map(lambda x: x[-1],[np.convolve(x, np.ones((win_sz,)) / win_sz, mode='valid') for x in crop_list])
-                    data_list = [a, b, c, d, e, f, g, h, i]
+                    data_to_pred = list(map(lambda x: x[-1],[np.convolve(x, np.ones((win_sz,)) / win_sz, mode='valid')
+                                                             for x in crop_list]))
+                    data_list = ",".join(map(str,np.array(data_to_pred).tolist()))
                     # Predict data for every 1s
-                    N_rate, status = predModel(np.array(data_list),svm_model)
+                    N_rate, status = predModel(np.array(data_to_pred),svm_model)
                     # Update prediction counter
                     rate_count.update([N_rate])
                     status_count.update([status])
                     # convert list into string
-                    data_logged = ','.join(map(str,data_list))
-                    # write data of 1s
-                    f.write(datetime.datetime.now().isoformat() + '\t' + data_logged + '\t'+status+'\t'+str(N_rate)+'\n')
+                    #data_list = [np.round(float(data_list[i]),2) for i,m in enumerate(data_list)]
 
-                    loop +=1
+                    # write data of 1s
+                    f.write(datetime.datetime.now().isoformat() + '\t'+data_list+'\n')
+
+                    loop += 1
 
                 App_Rate = rate_count.most_common(1)[0][0]      # select most frequent rate
                 N_status = status_count.most_common(1)[0][0]    # select most frequent status
@@ -150,13 +166,12 @@ while True:
                 GPS_y       = float(strData[4])
 
                 ## log decision data into file
-                f2.write(datetime.datetime.now().isoformat() + '\t' + data_logged + '\t' + N_status + '\t' + str(App_Rate) + '\n')
-
+                f2.write(datetime.datetime.now().isoformat() + '\t' + data_list + '\t' + status + '\t' + str(N_rate) + '\n')
         # send: "#,data1,data2,data3,data4,data5,data6"
-        clientMsg = "{},{},{},{},{},{},{}".format('#', App_Rate, Green_Index, Plant_Vol, Sys_Volt, GPS_x, GPS_y)
-        print ('ClientMessage: ' + clientMsg)
+        SendMsg2Client = "{},{},{},{},{},{},{}".format('#', App_Rate, Green_Index, Plant_Vol, Sys_Volt, GPS_x, GPS_y)
+        print ('SendClientMessage: ' + SendMsg2Client)
         # UDPServerSocket.sendto(b'#,120,0.5,2.0,125.2,99,88', address)
-        UDPServerSocket.sendto(str.encode(clientMsg), address)
+        UDPServerSocket.sendto(str.encode(SendMsg2Client), address)
 
         # set Bogballe calibrator
         n = set_bogballe(App_Rate)
@@ -167,8 +182,8 @@ while True:
         sys.exit(0)
 
     ## close file as system exit
-    f.close()
-    f2.close()
+f.close()
+f2.close()
 
 ser_sensor.close()
 ser_calibrator.close()
