@@ -15,21 +15,14 @@ Descriptions:
 """
 import serial
 import sys
-#from datetime import datetime
-import datetime
+import datetime,time
 import numpy as np
 import pandas as pd
 import random
 import pickle
-
-from utils import features, get_features, predModel
-
-def average(crop_list):
-    a, b, c, d, e, f, g, h, i, j, k = (sum(l) / len(l) for l in crop_list)
-    data_list = "%.3f,%.3f,%.3f,%.3f,%.3f," \
-                "%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" \
-                % (a, b, c, d, e, f, g, h, i, j, k)
-    return (data_list)
+import csv
+from collections import Counter
+from utils import get_features, get_features, predModel
 
 # Configure the serial port and open/activate it
 ser = serial.Serial(
@@ -50,53 +43,60 @@ mpath = '../svm_tuple.pkl'
 svm_model, svm_Xtrain, svm_Ytrain, svm_score = pickle.load(open(mpath, 'rb'))
 
 
-#get_filename = input('Filename : ')
-#f = open(get_filename+'.csv',"w+")
-header = "Datetime,RedEdge,NIR,Red,NDRE,NDVI,RERVI,RERDVI,REDVI,RESAVI,MRESAVI,CI"
-if ser.isOpen():
-    try:
-        #f.write(header+'\n')
 
-        while True:
-            duration   = 1
-            time_start = datetime.datetime.now()
-            time_end   = time_start + datetime.timedelta(seconds=duration)
-            crop_list  = [[] for i in range(9)]
 
-            while datetime.datetime.now() < time_end:
-                data = ser.readline().decode()
-                msg  = get_features(data)
+#"header = "Datetime,RedEdge,NIR,Red,NDRE,NDVI,RERVI,RERDVI,REDVI,RESAVI,MRESAVI,CI"
 
-                #msg_pred = get_features(data)
-                #App_rate = predModel(np.array(msg),svm_model)
 
-                for i, m in enumerate(msg):
-                    crop_list[i].append(msg[i])
+print ("Reading sensor..")
+get_filename = input('Filename : ')
+f = open(get_filename + '.csv', "w+")
+try:
 
-            #data_list = average(crop_list)
-            a, b, c, d, e, f, g, h, i = (sum(l) / len(l) for l in crop_list)
-            #data_list = "%.3f,%.3f,%.3f,%.3f,%.3f," \
-            #            "%.3f,%.3f,%.3f,%.3f" \
-            #            % (a, b, c, d, e, f, g, h, i)
+    loop = 0
+    crop_list = [[] for i in range(9)]
+    while (loop in range(5)):  # loop 5 times before determine predict
+        delay = 1
+        time_end = time.time() + delay
+        win = 0
 
-            data_list = [a,b,c,d,e,f,g,h,i]
-            App_Rate = predModel(np.array(data_list),svm_model)
-            print("Apprate = {}".format(App_Rate))
-            print(type(msg))
-            print(msg)
-            print(data_list)
-            #print (type(data_list))
-            #print("CropCircle: {}" .format(features(data)))
-            #f.write(datetime.datetime.now().isoformat() + '\t' + data_list + '\n')
-            #print(datetime.datetime.now().isoformat() +'\t'+data_list+'\n')
-            #print("Apprate = {}".format(App_rate))
+        while time.time() < time_end:
+            data = ser.readline().decode()
+            msg = get_features(data)
+            #print(data)
 
-    except Exception as e:
-        print ("Error communicating..: " + str(e))
-    except KeyboardInterrupt:
-        print("KeyboardInterrupted")
-        sys.exit(0)
-    #f.close()
+            for i, m in enumerate(msg):
+                crop_list[i].append(msg[i])
+                # print("Crop_list : {}".format(crop_list))
+            win += 1
+            # print("======================================")
+            # print("Crop_list2 : {}".format(crop_list))
+            # print("======================================")
+
+        win2 = len(crop_list[0])
+        print("window_size = {}".format(str(win)))
+        print("crop_list = {}".format(str(win2)))
+
+        data_to_pred = list(map(lambda x: x[-1], [np.convolve(x, np.ones((3,)) / (3), mode='valid') for x in crop_list]))
+        data_list = ",".join(map(str,np.array(data_to_pred).tolist()))
+        N_rate, status = predModel(np.array(data_to_pred), svm_model)
+        #data_list = [a, b, c,d,e,f,g,h,i]
+        #print("a = {},b = {}, c = {}".format(a, b, c))
+        #data_logged = ','.join(map(str, data_list))
+        f.write(data_list + '\n')
+        print(type(data_list))
+
+        loop += 1
+
+
+
+
+except Exception as e:
+    print ("Error communicating..: " + str(e))
+except KeyboardInterrupt:
+    print("KeyboardInterrupted")
+    sys.exit(0)
+##f.close()
 ser.close()
 
 
