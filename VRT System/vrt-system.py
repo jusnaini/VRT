@@ -54,11 +54,17 @@ svm_model, svm_Xtrain, svm_Ytrain, svm_score = pickle.load(open(mpath, 'rb'))
 UDPServerSocket = socket.socket(family=socket.AF_INET,type=socket.SOCK_DGRAM)
 
 ## Open file to log data
+timestamp = time.strftime("%Y%m%d_%H%M%S")
 get_filename = input('Filename : ')
-f = open(get_filename+'.csv',"w+")
-f2 = open(get_filename+'_log.csv',"w+")
-header = "Datetime,RedEdge,NIR,NDRE,RERVI,RERDVI,REDVI,RESAVI,MRESAVI,CI,N_pred,N_rate"
-f.write(header+'\n')
+f0 = open(get_filename+'_0_'+timestamp+'.csv',"w+") # raw data
+f1 = open(get_filename+'_1_'+timestamp+'.csv',"w+") # convolved data in 1 s
+f2 = open(get_filename+'_2_'+timestamp+'.csv',"w+") # predicted data after 5s (1loop=1s)
+
+header0 = "Datetime,RedEdge,NIR,RED,NDRE,NDVI"
+header  = "Datetime,RedEdge,NIR,NDRE,RERVI,RERDVI,REDVI,RESAVI,MRESAVI,CI,N_pred,N_rate"
+
+f0.write(header0+'\n')
+f1.write(header+'\n')
 f2.write(header+'\n')
 
 
@@ -92,6 +98,7 @@ while True:
         manual = int(strData[5])
 
         if pause == 1:
+            print("Paused...........")
             App_Rate    = 000
             Green_Index = 000
             Plant_Vol   = 000
@@ -127,34 +134,36 @@ while True:
                         data = ser_sensor.readline().decode() # Read Crop Circle
                         msg = get_features(data)              # Compute other features
                         #print("{} : {}".format(datetime.datetime.now().isoformat(),data))
+                        f0.write(datetime.datetime.now().isoformat() + '\t'+data+'\n')
 
                         for i, m in enumerate(msg):           # Append new data for each vi
                             crop_list[i].append(msg[i])
-                        win_sz +=1                            # Count data in 1s for moving average
+                        win_sz +=1                            # Count data len in 1s for moving average
+
+                    crop_list_size = len(crop_list[0])        # track increasing  data len for 5s
 
                     # Print info
                     print("-----------")
                     print("MODE : AUTO")
                     print("-----------")
-                    crop_list_size = len(crop_list[0])
                     print("window_size = {}".format(str(win_sz)))
-                    print("crop_list_size = {}".format(str(crop_list_size)))
+                    print("datalist_size = {}".format(str(crop_list_size)))
 
                     # Calculate moving average for every 1s
-                    data_to_pred = list(map(lambda x: x[-1],[np.convolve(x, np.ones((win_sz,)) / win_sz, mode='valid')
-                                                             for x in crop_list]))
-                    data_list = ",".join(map(str,np.array(data_to_pred).tolist()))
+                    data_to_pred = list(map(lambda x: x[-1],[np.convolve(x, np.ones((win_sz,)) / win_sz, mode='valid') for x in crop_list]))
                     # Predict data for every 1s
                     N_rate, status = predModel(np.array(data_to_pred),svm_model)
                     # Update prediction counter
                     rate_count.update([N_rate])
                     status_count.update([status])
-                    # convert list into string
-                    #data_list = [np.round(float(data_list[i]),2) for i,m in enumerate(data_list)]
 
+                    # Convert numpy.float64 to normal float to string for data logging. float64/float has no attribute write()
+                    data_list = ",".join(map(str, np.array(data_to_pred).tolist()))
                     # write data of 1s
-                    f.write(datetime.datetime.now().isoformat() + '\t'+data_list+'\n')
+                    f1.write(datetime.datetime.now().isoformat() + '\t'+data_list+'\t' + status + '\t' + str(N_rate)+'\n')
 
+                    # Round every sublist in list
+                    # data_list = [np.round(float(data_list[i]),2) for i,m in enumerate(data_list)]
                     loop += 1
 
                 App_Rate = rate_count.most_common(1)[0][0]      # select most frequent rate
@@ -166,7 +175,8 @@ while True:
                 GPS_y       = float(strData[4])
 
                 ## log decision data into file
-                f2.write(datetime.datetime.now().isoformat() + '\t' + data_list + '\t' + status + '\t' + str(N_rate) + '\n')
+                f2.write(datetime.datetime.now().isoformat() + '\t' + data_list + '\t' + N_status + '\t' + str(App_Rate) + '\n')
+
         # send: "#,data1,data2,data3,data4,data5,data6"
         SendMsg2Client = "{},{},{},{},{},{},{}".format('#', App_Rate, Green_Index, Plant_Vol, Sys_Volt, GPS_x, GPS_y)
         print ('SendClientMessage: ' + SendMsg2Client)
@@ -181,8 +191,9 @@ while True:
         print("KeyboardInterrupted")
         sys.exit(0)
 
-    ## close file as system exit
-f.close()
+## close file as system exit
+f0.close()
+f1.close()
 f2.close()
 
 ser_sensor.close()
