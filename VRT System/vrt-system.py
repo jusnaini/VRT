@@ -12,9 +12,11 @@ Descriptions:
          5. Send data to human-machine-interface (HMI) over UDP socket
 
 Serial port setup:
-                sudo chmod o+rw /dev/ttyS#
-                sudo stty -F /dev/ttyS# 38400 raw -echo
-                sudo cat /dev/ttyS#
+                sudo chmod o+rw /dev/ttyS8
+                sudo chmod o+rw /dev/ttyS7
+                sudo stty -F /dev/ttyS8 38400 raw -echo
+                sudo stty -F /dev/ttyS7 9600 raw -echo
+                sudo cat /dev/ttyS8
          If permission denied, consider to change port mode to 777
 --------------------------------------------------------------------------------------
 """
@@ -30,7 +32,7 @@ import pickle
 from collections import Counter
 
 from utils import CropCircle, BogballeCalibrator
-from utils import features,get_features,predModel,set_bogballe
+from utils import features,get_features,predModel,set_bogballe,get_model
 
 print("===============================")
 print("AN ON-THE-GO VRT CONTROL SYSTEM")
@@ -46,27 +48,33 @@ bufferSize = 1024
 ser_sensor = CropCircle()
 ser_calibrator = BogballeCalibrator()
 
-# load svm model
-mpath = '../svm_tuple.pkl'
-svm_model, svm_Xtrain, svm_Ytrain, svm_score = pickle.load(open(mpath, 'rb'))
+# User input
+print('(1-25dat,2-50dat,3-70dat)')
+i = input('Growth Stage : ')
+model,crop_len= get_model(int(i))
+get_filename = input('Filename     : ')
 
-# Create a datagram socket
-UDPServerSocket = socket.socket(family=socket.AF_INET,type=socket.SOCK_DGRAM)
-
-## Open file to log data
+# Open file to log data
 timestamp = time.strftime("%Y%m%d_%H%M%S")
-get_filename = input('Filename : ')
-f0 = open(get_filename+'_0_'+timestamp+'.csv',"w+") # raw data
-f1 = open(get_filename+'_1_'+timestamp+'.csv',"w+") # convolved data in 1 s
-f2 = open(get_filename+'_2_'+timestamp+'.csv',"w+") # predicted data after 5s (1loop=1s)
+f0 = open(get_filename+'_0_'+'.csv',"w+") # raw data
+f1 = open(get_filename+'_1_'+'.csv',"w+") # convolved data in 1 s
+f2 = open(get_filename+'_2_'+'.csv',"w+") # predicted data after 5s (1loop=1s)
 
-header0 = "Datetime,RedEdge,NIR,RED,NDRE,NDVI"
-header  = "Datetime,RedEdge,NIR,NDRE,RERVI,RERDVI,REDVI,RESAVI,MRESAVI,CI,N_pred,N_rate"
+#header0 = "Datetime,RedEdge,NIR,RED,NDRE,NDVI"
+#header  = "Datetime,RedEdge,NIR,NDRE,RERVI,RERDVI,REDVI,RESAVI,MRESAVI,CI,N_pred,N_rate"
+
+header0= "Datetime,RedEdge,NIR,Red,NDRE,NDVI"
+header= "Datetime,RedEdge,NIR,NDVI,REDVI,RERDVI,RESAVI,N_pred,N_rate"
 
 f0.write(header0+'\n')
 f1.write(header+'\n')
 f2.write(header+'\n')
 
+# Set model based on growth stage
+svm_model = pickle.load(open(model, 'rb'))
+
+# Create a datagram socket
+UDPServerSocket = socket.socket(family=socket.AF_INET,type=socket.SOCK_DGRAM)
 
 # Bind address and ip
 UDPServerSocket.bind((UDP_IP,UDP_PORT))
@@ -121,7 +129,8 @@ while True:
                 loop = 0
                 status_count = Counter([])
                 rate_count = Counter([])
-                crop_list = [[] for i in range(9)]
+                #crop_list = [[] for i in range(9)]
+                crop_list = [[] for i in range(crop_len)]
 
                 ## loop 5 times to select most frequent prediction
                 while (loop in range(5)):

@@ -65,7 +65,8 @@ def features(data):
     mresavi  = 0.5*(2*nir+1 - ((2*nir+1)**2 - 8*(nir-re))**0.5)
     ci       = nir/re - 1
 
-    idx_list1 = [re,nir,red,ndre,ndvi,rervi,rerdvi,redvi,resavi,mresavi,ci]
+    #idx_list1 = [re,nir,red,ndre,ndvi,rervi,rerdvi,redvi,resavi,mresavi,ci]
+    idx_list1 = [re, nir, ndvi, redvi,rerdvi,  resavi]
     #print(idx_list)
     return(idx_list1)
 
@@ -82,19 +83,29 @@ def get_features(data):
     mresavi  = 0.5*(2*nir+1 - ((2*nir+1)**2 - 8*(nir-re))**0.5)
     ci       = nir/re - 1
 
-    idx_list1 = [re,nir,ndre,rervi,rerdvi,redvi,resavi,mresavi,ci]
+    #idx_list1 = [re,nir,ndre,rervi,rerdvi,redvi,resavi,mresavi,ci]
+    idx_list1 = [re,nir,ndvi,redvi,rerdvi,resavi]
+
     #print(idx_list)
     return(idx_list1)
 
 def predModel(data,svm_model):
     if(svm_model.predict([data]))== 0:
         print('N_status : LOW')
-        N_recommend = 200
+        #N_recommend = 88 #5 dat
+        N_recommend = 132 #25 dat
+        #N_recommend = 151 #50 dat
+        #N_recommend = 64 #70 dat
         status = 'low'
+
     elif(svm_model.predict([data]))==1:
         print('N_status : MEDIUM')
-        N_recommend = 120
+        #N_recommend = 53 #5 dat
+        N_recommend = 79 #25 dat
+        #N_recommend = 90 #50 dat
+        #N_recommend = 40 #70 dat
         status = 'medium'
+
     elif(svm_model.predict([data]))== 2:
         print('N_status : HIGH')
         N_recommend = 0
@@ -104,3 +115,24 @@ def predModel(data,svm_model):
         N_recommend=0
         status = 'unknown'
     return [N_recommend, status]
+
+
+
+def get_model(i):
+    header0 = "Datetime,RedEdge,NIR,NDVI,REDVI,RERDVI,RESAVI"
+    switcher={
+        1:'model/dat25_model.pkl',
+        2:'model/dat50_model.pkl',
+        3:'model/dat70_model.pkl'
+    }
+    default = 'model/dat25_model.pkl'
+    crop_len = 6
+    print("Model loaded : {}".format(switcher.get(i)))
+    return [switcher.get(i,default),crop_len]
+
+# load svm model
+#mpath = '../svm_tuple.pkl'
+#svm_model, svm_Xtrain, svm_Ytrain, svm_score = pickle.load(open(mpath, 'rb'))
+
+#mpath = 'model/dat25_model.pkl'
+#svm_model = pickle.load(open(mpath, 'rb'))
