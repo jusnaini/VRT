@@ -143,7 +143,8 @@ while True:
                         data = ser_sensor.readline().decode() # Read Crop Circle
                         msg = get_features(data)              # Compute other features
                         #print("{} : {}".format(datetime.datetime.now().isoformat(),data))
-                        f0.write(datetime.datetime.now().isoformat() + '\t'+data+'\n')
+                        #f0.write(datetime.datetime.now().isoformat() + '\t'+data+'\n')
+                        f0.write(time.strftime("%Y/%m/%d_%H:%M:%S") + ',' + data + '\n')
 
                         for i, m in enumerate(msg):           # Append new data for each vi
                             crop_list[i].append(msg[i])
@@ -169,7 +170,9 @@ while True:
                     # Convert numpy.float64 to normal float to string for data logging. float64/float has no attribute write()
                     data_list = ",".join(map(str, np.array(data_to_pred).tolist()))
                     # write data of 1s
-                    f1.write(datetime.datetime.now().isoformat() + '\t'+data_list+'\t' + status + '\t' + str(N_rate)+'\n')
+                    #f1.write(datetime.datetime.now().isoformat() + '\t'+data_list+'\t' + status + '\t' + str(N_rate)+'\n')
+                    f1.write(time.strftime("%Y/%m/%d_%H:%M:%S") + ','+data_list+',' + status + ',' + str(N_rate)+'\n')
+
 
                     # Round every sublist in list
                     # data_list = [np.round(float(data_list[i]),2) for i,m in enumerate(data_list)]
@@ -184,7 +187,8 @@ while True:
                 GPS_y       = float(strData[4])
 
                 ## log decision data into file
-                f2.write(datetime.datetime.now().isoformat() + '\t' + data_list + '\t' + N_status + '\t' + str(App_Rate) + '\n')
+                #f2.write(datetime.datetime.now().isoformat() + '\t' + data_list + '\t' + N_status + '\t' + str(App_Rate) + '\n')
+                f2.write(time.strftime("%Y/%m/%d_%H:%M:%S") + ',' + data_list + ',' + N_status + '\t' + str(App_Rate) + '\n')
 
         # send: "#,data1,data2,data3,data4,data5,data6"
         SendMsg2Client = "{},{},{},{},{},{},{}".format('#', App_Rate, Green_Index, Plant_Vol, Sys_Volt, GPS_x, GPS_y)
